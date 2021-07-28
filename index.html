@@ -8,4 +8,213 @@
 <body>
     <h1>My Inv Tool</h1>
 </body>
+</htm
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@mdi/font@4.x/css/materialdesignicons.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.5, user-scalable=yes, minimal-ui">
+  <title>Trading Tool</title>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+
+<script>
+  Vue.component('sell-buy-calc', {
+  template: `
+  <v-card>
+    <v-toolbar
+      flat
+      color="blue-grey"
+      dark
+    >
+      <v-toolbar-title>計算賣出資金的再買入價位</v-toolbar-title>
+        </v-toolbar>
+
+    <v-card-actions>
+      <v-spacer></v-spacer>
+      <v-btn
+        elevation="2"
+        block
+       @click="reset" 
+        >重置</v-btn>
+    </v-card-actions>
+    <v-divider></v-divider>
+
+
+        <v-card-text>
+            <v-text-field
+            v-model.number="sellPrice"
+            hide-details
+            type="number"
+            label="賣出價位"
+            @input="compute"
+            />
+            <v-text-field
+            v-model.number="sellLot"
+            hide-details
+            type="number"
+            label="賣出單位"
+            @input="compute"
+            />
+            <v-text-field
+            v-model.number="increaseLot"
+            hide-details
+            type="number"
+            label="預算增加單位"
+            @input="compute"
+            />
+
+        <v-divider class="my-2"></v-divider>
+
+        <v-text-field
+            v-model="buyLot"
+            label="買入單位"
+            disabled
+          ></v-text-field>
+        <v-text-field
+            v-model="buyPrice"
+            label="買入價位"
+            disabled
+          ></v-text-field>
+        <v-text-field
+            v-model="buyAmt"
+            label="買入成本"
+            disabled
+          ></v-text-field>
+        <v-text-field
+            v-model="plAmt"
+            label="收益/損失"
+            disabled
+          ></v-text-field>
+
+        <v-divider class="my-2"></v-divider>
+
+        <v-text-field
+            v-model="sellUnit"
+            label="賣出股票"
+            disabled
+          ></v-text-field>
+        <v-text-field
+            v-model="sellAmt"
+            label="賣出價值"
+            disabled
+          ></v-text-field>
+        <v-text-field
+            v-model="sellFees"
+            label="賣出費用"
+            disabled
+          ></v-text-field>
+        <v-text-field
+            v-model="sellValue"
+            label="套現資金"
+            disabled
+          ></v-text-field>
+
+    </v-card-text>
+  </v-card>
+`,
+    data() {
+        return {
+            sellPrice: 1.51,
+            sellLot: 23,
+            sellUnit: 0,
+            increaseLot: 4,
+            step: 1,
+            sellAmt: 0,
+            sellFees: 0,
+            sellValue: 0,
+            buyUnit: 0,
+            buyLot: 0,
+            buyPrice: 0,
+            buyAmt: 0,
+            buyFees: 0,
+            buyValue: 0,
+            plAmt: 0,
+        };
+    },
+    mounted() {
+        this.reset();
+    },
+    methods: {
+      compute() {
+          this.sellUnit = this.sellLot * 100;
+            this.sellAmt = 0;
+            this.fees = 0;
+            this.sellValue = 0;
+          this.buyUnit = 0;
+          this.buyLot = 0;
+          this.buyPrice = 0;
+          this.buyValue = 0;
+          this.sellAmt = parseFloat((this.sellUnit * this.sellPrice).toFixed(2));
+          this.sellFees = this.calculateFee(this.sellAmt);
+          this.sellValue = this.sellAmt - this.sellFees;
+          this.buyLot = this.sellLot + this.increaseLot;
+          this.buyUnit = this.buyLot * 100;
+          // this.buyPrice = (this.sellAmt + 2 *  this.sellFees) / (this.buyUnit);
+        this.buyPrice = this.calculateTargetPrice(this.sellValue, this.buyUnit);
+        this.buyValue = this.buyUnit * this.buyPrice;
+        this.buyFees = this.calculateFee(this.buyValue);
+        this.buyAmt = parseFloat((this.buyValue + this.buyFees).toFixed(2));
+
+        this.plAmt = parseFloat((this.sellValue - this.buyAmt).toFixed(2));
+
+          // if (parseFloat(this.price) > 5) {
+        //   this.$nextTick(() => {
+        //     this.price = 9
+        //   })        
+        // }
+      },
+
+      calculateFee(amt) {
+          if (amt == 0) return 0;
+          let brokerfee = (amt <= 10000? 8.0 : amt * 0.0008);
+          let stampduty = Math.ceil(amt / 1000);
+         stampduty = stampduty > 200? 200.0 : stampduty;
+          let clearfee = (amt * 0.0003);
+         clearfee = clearfee > 200? 200.0 : clearfee;
+          let servchg = (brokerfee * 0.06);
+          let fees = brokerfee + stampduty + clearfee + servchg;
+          return parseFloat(fees.toFixed(2));
+      },
+
+      calculateTargetPrice(amt, unit) {
+          let calcprice = amt / unit;
+          let mod = calcprice <= 1.0? 0.005 : calcprice <= 10? 0.01 : calcprice <= 100? 0.02 : 0.1;
+          let price = Math.floor(calcprice / mod) * mod;
+          return price;
+      },
+  
+      reset() {
+        this.sellPrice = 0.0;
+        this.sellLot = 0;
+        this.increaseLot = 0;
+        this.compute();
+      }
+    }, 
+}) ;
+</script>
+
+  <script>
+new Vue({
+    el: '#app',
+    vuetify: new Vuetify(),
+    template: `
+    <v-app>
+      <v-main>
+         <sell-buy-calc></sell-buy-calc>
+      </v-main>
+    </v-app>
+    `,
+
+    });
+
+</script>
+</body>
 </html>
